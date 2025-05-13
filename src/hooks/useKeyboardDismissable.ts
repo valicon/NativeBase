@@ -1,15 +1,14 @@
-import React from 'react';
 import { useEffect } from 'react';
-import { BackHandler, EventSubscription } from 'react-native';
+import { BackHandler, NativeEventSubscription } from 'react-native';
 
 type IParams = {
   enabled?: boolean;
-  callback: () => any;
+  callback: () => void; // Changed 'any' to 'void' for better type safety
 };
 
-let keyboardDismissHandlers: Array<() => any> = [];
+let keyboardDismissHandlers: Array<() => void> = [];
 export const keyboardDismissHandlerManager = {
-  push: (handler: () => any) => {
+  push: (handler: () => void) => {
     keyboardDismissHandlers.push(handler);
     return () => {
       keyboardDismissHandlers = keyboardDismissHandlers.filter(
@@ -26,9 +25,9 @@ export const keyboardDismissHandlerManager = {
 /**
  * Handles attaching callback for Escape key listener on web and Back button listener on Android
  */
-export const useKeyboardDismissable = ({ enabled, callback }: IParams) => {
-  React.useEffect(() => {
-    let cleanupFn = () => {};
+export const useKeyboardDismissable = ({ enabled = true, callback }: IParams) => {
+  useEffect(() => {
+    let cleanupFn: () => void = () => {};
     if (enabled) {
       cleanupFn = keyboardDismissHandlerManager.push(callback);
     } else {
@@ -42,9 +41,9 @@ export const useKeyboardDismissable = ({ enabled, callback }: IParams) => {
   useBackHandler({ enabled, callback });
 };
 
-export function useBackHandler({ enabled, callback }: IParams) {
+export function useBackHandler({ enabled = true, callback }: IParams) {
   useEffect(() => {
-    let handlerRef: EventSubscription | null = null;
+    let handlerRef: NativeEventSubscription | null = null;
     const backHandler = () => {
       callback();
       return true;
@@ -52,10 +51,9 @@ export function useBackHandler({ enabled, callback }: IParams) {
 
     if (enabled) {
       handlerRef = BackHandler.addEventListener('hardwareBackPress', backHandler);
-    } else if (handlerRef) {
-      handlerRef.remove();
     }
 
+    // Move cleanup to the return function to avoid premature removal
     return () => {
       if (handlerRef) {
         handlerRef.remove();
